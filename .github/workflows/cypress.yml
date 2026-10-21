@@ -1,0 +1,80 @@
+name: Testes Automatizados — ServeRest
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── Verificação estática e execução dos testes ────────────────────────────
+  test:
+    name: Verificar e executar testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # O Cypress 16 exige Node 22 ou superior
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependências
+        uses: cypress-io/github-action@v6
+        with:
+          runTests: false
+
+      - name: Verificar tipos
+        run: npm run typecheck
+
+      - name: Verificar estilo (lint)
+        run: npm run lint
+
+      - name: Executar testes (API + Frontend)
+        uses: cypress-io/github-action@v6
+        with:
+          install: false
+          command: npm test
+
+      # Faz upload do relatório mesmo quando há testes falhando
+      - name: Artefato — relatório Mochawesome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-mochawesome
+          path: cypress/reports/html
+          retention-days: 30
+
+      # Empacota o relatório para GitHub Pages (apenas no push da branch principal)
+      - name: Preparar relatório para GitHub Pages
+        if: always() && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: cypress/reports/html
+
+  # ─── Publicação no GitHub Pages ────────────────────────────────────────────
+  deploy-report:
+    name: Publicar relatório
+    needs: test
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'push'
+
+    # Só este job recebe permissão de publicar
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Deploy no GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
