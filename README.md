@@ -2,7 +2,16 @@
 
 Testes automatizados com [Cypress](https://www.cypress.io/) e **TypeScript** para o **frontend** (E2E) e a **API** do ServeRest.
 
-**Dashboard online com os resultados da última execução:** https://gabriellachafir.github.io/serverest-cypress-qa/dashboard/
+[![Testes Automatizados](https://github.com/GabriellaChafir/serverest-cypress-qa/actions/workflows/cypress.yml/badge.svg)](https://github.com/GabriellaChafir/serverest-cypress-qa/actions/workflows/cypress.yml)
+
+## Resumo
+
+- **46 testes automatizados** (12 de frontend e 34 de API), todos executados a cada push.
+- **CI/CD com GitHub Actions:** a cada push, o pipeline roda `typecheck`, `lint` e todos os testes, e publica o resultado. [Ver execuções](https://github.com/GabriellaChafir/serverest-cypress-qa/actions).
+- **Dashboard online** com o resultado de cada teste, a requisição e a resposta dos testes de API e exportação em PDF: https://gabriellachafir.github.io/serverest-cypress-qa/dashboard/
+- **Relatório completo** (mochawesome) com screenshots das falhas, acessível pelo botão "Abrir relatório completo" do dashboard.
+
+**Sistema testado:**
 
 - Frontend: https://front.serverest.dev/
 - API (Swagger): https://serverest.dev/
