@@ -1,0 +1,17 @@
+{
+  "registrationSuccess": "Cadastro realizado com sucesso",
+  "recordUpdated": "Registro alterado com sucesso",
+  "recordDeleted": "Registro excluído com sucesso",
+  "userNotFound": "Usuário não encontrado",
+  "emailInUse": "Este email já está sendo usado",
+  "loginSuccess": "Login realizado com sucesso",
+  "invalidCredentials": "Email e/ou senha inválidos",
+  "invalidToken": "Token de acesso ausente, inválido, expirado ou usuário do token não existe mais",
+  "adminOnlyRoute": "Rota exclusiva para administradores",
+  "duplicateProduct": "Já existe produto com esse nome",
+  "purchaseCancelled": "Registro excluído com sucesso. Estoque dos produtos reabastecido",
+  "cartAlreadyExists": "Não é permitido ter mais de 1 carrinho",
+  "insufficientStock": "Produto não possui quantidade suficiente",
+  "cartNotFound": "Não foi encontrado carrinho para esse usuário",
+  "productNotFound": "Produto não encontrado"
+}
