@@ -53,7 +53,7 @@ Como funciona: o relatório do mochawesome salva um JSON (`saveJson`), o script 
 
 ```
 .github/workflows/
-└── cypress.yml               # CI: typecheck, lint, testes e publicação do relatório
+└── cypress.yml               # CI: typecheck, lint, testes e publicação do dashboard e do relatório
 dashboard/                    # dashboard HTML com os resultados da última execução
 scripts/                      # abrir relatório/dashboard e gerar os dados do dashboard
 cypress/
@@ -107,7 +107,7 @@ O workflow `.github/workflows/cypress.yml` roda a cada push e pull request para 
 3. `npm test` (API e frontend);
 4. anexa o relatório do mochawesome à execução, mesmo quando há falhas.
 
-Nos pushes, o relatório também é publicado no GitHub Pages. Para isso, o repositório precisa ter em **Settings > Pages > Source** a opção **GitHub Actions**. Apenas o job de publicação recebe a permissão de escrita no Pages; o job que executa os testes tem só leitura.
+Nos pushes, o **dashboard** e o relatório completo também são publicados no GitHub Pages: a raiz do site abre o dashboard, e o link "Abrir relatório completo" leva ao relatório do mochawesome. Para isso, o repositório precisa ter em **Settings > Pages > Source** a opção **GitHub Actions**. Apenas o job de publicação recebe a permissão de escrita no Pages; o job que executa os testes tem só leitura.
 
 ## Cobertura
 
