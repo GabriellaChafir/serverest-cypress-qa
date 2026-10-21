@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Montserrat:wght@600;700;800&display=swap">
+<style>
+/* Layout: fixed light-blue sidebar (collapsible) + static white page; only the result sheet scrolls.
+   Single light look on purpose: a lab report is printed on white paper. */
+:root {
+  color-scheme: light;
+  --blue: #0057B8;
+  --blue-deep: #003B7A;
+  --blue-ink: #002A57;
+  --yellow: #F4B223;
+  --bench: #E8EDF4;
+  --paper: #FFFFFF;
+  --soft: #E6F0FC;
+  --side-bg: #1A47C0;
+  --side-hover: rgba(255,255,255,.12);
+  --side-ink: #FFFFFF;
+  --side-muted: rgba(255,255,255,.64);
+  --side-active: #CFE2FF;
+  --side-active-ink: #0B2E7A;
+  --ink: #1B2638;
+  --muted: #5B6B82;
+  --line: #D3DCE8;
+  --pos-bg: #E3EEFB;
+  --pos-ink: #003B7A;
+  --neg-bg: #FDF1D3;
+  --neg-ink: #6B4A00;
+  --ok-bg: #E1F3E8;
+  --ok-ink: #14693F;
+  --fail-bg: #FDECEA;
+  --fail-ink: #B42318;
+  --idle-ink: #7A889C;
+  --f-head: 'Montserrat', Arial, sans-serif;
+  --f-body: 'Inter', Arial, sans-serif;
+  --f-mono: 'IBM Plex Mono', Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/1.6 var(--f-body);
+  overflow: hidden;
+}
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: 280px minmax(0, 1fr); height: 100vh; transition: grid-template-columns .25s ease; }
+.app.collapsed { grid-template-columns: 0 minmax(0, 1fr); }
+
+/* SIDEBAR */
+.side { background: var(--side-bg); color: var(--side-ink); overflow: hidden; min-width: 0; }
+.app.collapsed .side { visibility: hidden; transition: visibility 0s .25s; }
+.side-inner { width: 280px; height: 100%; overflow-y: auto; padding: 28px 0 24px; }
+.brand { padding: 0 16px 20px 24px; border-bottom: 1px solid rgba(255,255,255,.2); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.brand .toggle { margin-top: -6px; }
+.side-inner, .nav { scrollbar-width: none; }
+.side-inner::-webkit-scrollbar, .nav::-webkit-scrollbar { display: none; }
+.brand-mark { font: 700 18px/1 var(--f-head); color: #fff; }
+.brand-mark b { color: var(--blue); font-weight: 700; }
+.nav { padding-top: 10px; }
+.nav-group { width: 100%; background: none; border: 0; text-align: left; cursor: pointer; font: 600 11px/1 var(--f-body); color: var(--side-muted); padding: 16px 24px 6px; display: flex; align-items: center; gap: 7px; }
+.nav-group:hover { color: #fff; }
+.nav-group svg { width: 14px; height: 14px; flex-shrink: 0; }
+.nav-group .chev { margin-left: auto; transition: transform .2s ease; }
+.nav-block.closed .chev { transform: rotate(-90deg); }
+.nav-items { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .2s ease; }
+.nav-items > div { overflow: hidden; min-height: 0; }
+.nav-block.closed .nav-items { grid-template-rows: 0fr; }
+.nav-block.closed .nav-items > div { visibility: hidden; transition: visibility 0s .2s; }
+.nav a {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 8px 24px; margin-left: 12px;
+  font: 500 13px/1.35 var(--f-body); color: var(--side-ink);
+  border-radius: 8px 0 0 8px;
+}
+.nav a:hover { background: var(--side-hover); }
+.nav a[aria-current="page"] { background: var(--side-active); color: var(--side-active-ink); font-weight: 600; }
+.nav a[aria-current="page"] .n { color: var(--side-active-ink); }
+.nav .n { font: 500 11px/1 var(--f-mono); color: var(--side-muted); font-variant-numeric: tabular-nums; }
+
+/* CONTENT */
+.content { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.topbar { position: fixed; top: 12px; left: max(12px, env(safe-area-inset-left, 0px)); z-index: 5; display: none; }
+.app.collapsed .topbar { display: block; }
+.toggle { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--blue-deep); cursor: pointer; }
+.toggle:hover { background: var(--soft); }
+.brand .toggle { color: #fff; }
+.brand .toggle:hover { background: rgba(255,255,255,.16); }
+.toggle svg { display: block; width: 20px; height: 20px; }
+.main { flex: 1; min-height: 0; overflow-y: auto; padding: 32px max(24px, env(safe-area-inset-right, 0px)) 72px 36px; }
+.sheet { max-width: 960px; margin: 0 auto; background: var(--paper); }
+.sheet-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 26px 32px 22px; border-bottom: 3px solid var(--blue); }
+.eyebrow { font: 500 13px/1 var(--f-body); color: var(--muted); }
+h1 { font: 800 clamp(24px, 3.4vw, 32px)/1.15 var(--f-head); color: var(--blue-deep); margin: 10px 0 0; text-wrap: balance; }
+.code { font: 600 13px/1 var(--f-mono); color: var(--blue-deep); border: 1.5px solid var(--blue-deep); padding: 8px 10px; white-space: nowrap; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); border-bottom: 1px solid var(--line); }
+.field { padding: 14px 32px; border-right: 1px solid var(--line); min-width: 0; }
+.field:last-child { border-right: 0; }
+.field dt { font: 500 12.5px/1 var(--f-body); color: var(--muted); }
+.field dd { margin: 7px 0 0; font: 500 13.5px/1.4 var(--f-body); overflow-wrap: anywhere; }
+.field dd.mono { font-family: var(--f-mono); font-size: 12.5px; }
+.sheet-body { padding: 8px 32px 32px; }
+h2 { font: 700 16px/1 var(--f-head); color: var(--blue-deep); margin: 28px 0 14px; }
+
+/* RESULT TABLE */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font: 600 12.5px/1 var(--f-body); color: var(--muted); padding: 0 12px 10px 0; border-bottom: 1px solid var(--ink); white-space: nowrap; }
+td { padding: 12px 12px 12px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.cod { font: 500 12px/1.6 var(--f-mono); color: var(--muted); white-space: nowrap; }
+td.ex small { display: block; margin-top: 3px; font: 400 12.5px/1.3 var(--f-body); color: var(--muted); }
+.pill { display: inline-block; font: 600 12px/1 var(--f-body); padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.pill.pos { background: var(--pos-bg); color: var(--pos-ink); }
+.pill.neg { background: var(--neg-bg); color: var(--neg-ink); }
+.res { display: inline-flex; align-items: center; gap: 7px; font: 600 13px/1 var(--f-body); color: var(--ok-ink); white-space: nowrap; }
+.res i { width: 18px; height: 18px; background: var(--ok-bg); border-radius: 50%; display: grid; place-items: center; }
+.res svg { width: 11px; height: 11px; }
+.res.fail { color: var(--fail-ink); }
+.res.fail i { background: var(--fail-bg); }
+.res.idle { color: var(--idle-ink); }
+.res.idle i { background: var(--bench); }
+.err { display: block; margin-top: 6px; font: 400 12px/1.45 var(--f-mono); color: var(--fail-ink); overflow-wrap: anywhere; }
+.fail-text { color: var(--fail-ink); }
+.ev { margin-top: 8px; }
+.ev summary { cursor: pointer; font: 600 12.5px/1.4 var(--f-body); color: var(--blue); }
+.ev summary:hover { text-decoration: underline; }
+.call { margin-top: 10px; padding: 10px 12px; border: 1px solid #DCE8F8; border-radius: 10px; background: #F8FBFF; }
+.call-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 500 12.5px/1.4 var(--f-mono); }
+.call-head b { color: var(--blue-deep); }
+.call-head span { overflow-wrap: anywhere; }
+.st { font-style: normal; font-weight: 600; font-size: 11.5px; padding: 2px 8px; border-radius: 999px; }
+.st.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.st.warn { background: var(--neg-bg); color: var(--neg-ink); }
+.st.bad { background: var(--fail-bg); color: var(--fail-ink); }
+.call-label { margin: 8px 0 4px; font: 600 11.5px/1.2 var(--f-body); color: var(--muted); }
+.call pre { margin: 0; padding: 8px 10px; max-height: 260px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 400 12px/1.5 var(--f-mono); background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+.runstrip { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-top: 16px; padding: 14px 18px; border: 1px solid #DCE8F8; background: #F3F8FF; border-radius: 14px; }
+.runstrip > div { display: flex; flex-direction: column; margin-right: 6px; }
+.runstrip b { font: 700 13px/1.2 var(--f-head); color: var(--blue-deep); }
+.runstrip > div span { font: 400 12.5px/1.4 var(--f-body); color: var(--muted); }
+.runstrip .runlink { margin-left: auto; font: 600 13px/1 var(--f-body); color: var(--blue); }
+.runstrip .runlink:hover { text-decoration: underline; }
+.runstrip.empty { color: var(--muted); font-size: 14px; }
+.runstrip code { font-family: var(--f-mono); font-size: .92em; background: #fff; padding: 1px 5px; border-radius: 4px; }
+
+/* OVERVIEW */
+.totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 22px; }
+.total { position: relative; display: block; color: inherit; padding: 18px 20px 18px; background: #F3F8FF; border: 1px solid #DCE8F8; border-radius: 16px; transition: transform .15s, border-color .15s, box-shadow .15s; }
+a.total:hover { transform: translateY(-2px); border-color: var(--blue); box-shadow: 0 8px 20px -10px rgba(0,87,184,.45); }
+.note { margin: 0 0 12px; color: var(--muted); font-size: 14px; max-width: 66ch; }
+.evidence { margin: 0; overflow-x: auto; background: #F3F8FF; border: 1px solid #DCE8F8; border-radius: 12px; padding: 16px 18px; font: 400 12.5px/1.6 var(--f-mono); color: var(--ink); }
+.obs code, .note code { font-family: var(--f-mono); font-size: .92em; background: #F3F8FF; padding: 1px 5px; border-radius: 4px; }
+.sec-link { color: var(--blue-deep); }
+.sec-link:hover { text-decoration: underline; }
+.file-link { color: var(--blue-deep); font-weight: 600; }
+.file-link:hover { text-decoration: underline; }
+.total .ico { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border-radius: 10px; background: #fff; color: var(--blue); display: grid; place-items: center; box-shadow: 0 1px 2px rgba(0,59,122,.08); }
+.total .ico svg { width: 18px; height: 18px; display: block; }
+.total b { display: block; font: 800 36px/1 var(--f-head); color: var(--blue-deep); font-variant-numeric: tabular-nums; }
+.total span { display: block; margin-top: 10px; font: 500 13px/1.3 var(--f-body); color: var(--muted); }
+.panel-row td { padding: 14px 12px 14px 0; }
+.panel-row a { color: var(--blue-deep); font-weight: 600; }
+.panel-row a:hover { text-decoration: underline; }
+.bar { display: flex; height: 10px; min-width: 120px; background: var(--bench); }
+.bar span:first-child { background: var(--blue); }
+.bar span:last-child { background: var(--yellow); }
+.legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; font: 500 13px/1 var(--f-body); color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; margin-right: 7px; vertical-align: -1px; }
+.num { font: 500 13px/1 var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* OBSERVATION */
+.obs { border: 1px solid var(--line); border-left: 6px solid var(--yellow); padding: 20px 24px; background: #FFFCF2; }
+.obs h3 { margin: 0 0 8px; font: 700 16px/1.3 var(--f-head); color: var(--blue-deep); }
+.obs p { margin: 0 0 10px; max-width: 64ch; }
+.obs p:last-child { margin: 0; }
+.tag { display: inline-block; font: 600 12px/1 var(--f-body); padding: 5px 10px; border-radius: 999px; background: var(--yellow); color: var(--blue-ink); margin-bottom: 12px; }
+
+/* MOBILE */
+@media (max-width: 860px) {
+  .app, .app.collapsed { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .app.collapsed .side { display: none; }
+  .topbar { position: static; padding: 8px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); }
+  .side-inner { width: auto; height: auto; padding: 16px 0 8px; }
+  .brand { padding: 0 max(16px, env(safe-area-inset-left, 0px)) 12px; }
+  .nav { display: flex; overflow-x: auto; padding: 8px max(16px, env(safe-area-inset-left, 0px)) 8px; gap: 6px; }
+  .nav-group { display: none; }
+  .nav-block, .nav-items, .nav-items > div { display: contents; }
+  .nav-block.closed .nav-items > div { visibility: visible; }
+  .nav a { margin: 0; border-radius: 6px; padding: 9px 14px; white-space: nowrap; background: rgba(255,255,255,.12); }
+  .nav .n { display: none; }
+  .main { padding: 20px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
+  .sheet-top { padding: 20px 18px 18px; flex-direction: column; }
+  .field { padding: 12px 18px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .sheet-body { padding: 4px 18px 24px; }
+  .totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sheet { animation: rise .25s ease-out; }
+  .bar span { animation: fill 1.1s cubic-bezier(.22, .8, .3, 1) both; animation-delay: calc(var(--i, 0) * 90ms + 150ms); }
+  .bar span:first-child { transform-origin: left center; }
+  .bar span:last-child { transform-origin: right center; }
+}
+@keyframes rise { from { opacity: .0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* EXPORTAR PDF */
+.btn-pdf { display: inline-flex; align-items: center; gap: 8px; flex: none; font: 600 13px/1 var(--f-body); padding: 11px 16px; border: 0; border-radius: 999px; background: var(--blue); color: #fff; cursor: pointer; transition: background .15s; }
+.btn-pdf:hover { background: var(--blue-deep); }
+.btn-pdf svg { width: 16px; height: 16px; display: block; }
+#print-root { display: none; }
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { height: auto !important; overflow: visible !important; }
+  .app { display: none !important; }
+  #print-root { display: block; }
+  .print-page { break-after: page; }
+  .print-page:last-child { break-after: auto; }
+  .sheet { max-width: none; margin: 0; }
+  .sheet-top, .sheet-body { padding-left: 0; padding-right: 0; }
+  .field { padding-left: 0; }
+  .btn-pdf, .ev, .runlink { display: none !important; }
+  tr, .total, .runstrip { break-inside: avoid; }
+  *, *::before, *::after { animation: none !important; transition: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="side" id="side">
+    <div class="side-inner">
+      <div class="brand">
+        <div class="brand-mark">Dashboard</div>
+        <button class="toggle" type="button" aria-label="Recolher menu" aria-expanded="true" aria-controls="side" title="Recolher menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+        </button>
+      </div>
+      <nav class="nav" id="nav" aria-label="Exames"></nav>
+    </div>
+  </aside>
+  <div class="content">
+    <div class="topbar">
+      <button class="toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="side" title="Abrir menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+      </button>
+    </div>
+    <main class="main" id="main"><div class="sheet" id="sheet" tabindex="-1"></div></main>
+  </div>
+</div>
+
+<div id="print-root"></div>
+
+<script src="data/results.js"></script>
+<script>
+const CHECK ='<svg viewBox="0 0 12 12"><polyline points="2,6.5 5,9.5 10,3" fill="none" stroke="#14693F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const ICON_MONITOR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>';
+const ICON_LIST = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/></svg>';
+const ICON_FILE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/></svg>';
+const ICON_CHEVRON ='<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const ICON_PDF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>';
+const ICON_ALERT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>';
+const ICON_SERVER ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>';
+
+// Fonte: títulos dos it() em cypress/e2e. "t" marca casos gerados a partir de tabela (data-driven).
+const SPECS = [
+  { id: 'fe-cadastro-usuario', code: 'FE-01', layer: 'Frontend', name: 'Cadastro de usuário', file: 'cypress/e2e/frontend/user-registration.cy.ts', target: 'front.serverest.dev/cadastrarusuarios', tech: 'Page Object · Interceptor · data-testid', cases: [
+    'Deve cadastrar um usuário administrador e acessar a home do admin',
+    'Deve cadastrar um usuário não administrador e ser direcionado para a loja',
+    'Não deve cadastrar um usuário com e-mail já utilizado' ] },
+  { id: 'fe-login', code: 'FE-02', layer: 'Frontend', name: 'Login', file: 'cypress/e2e/frontend/login.cy.ts', target: 'front.serverest.dev/login', tech: 'Page Object · Interceptor · Data-driven', cases: [
+    'Deve realizar login com credenciais válidas e acessar a home do admin',
+    'Deve realizar login como usuário não administrador e acessar a loja',
+    'Deve realizar logout e ser redirecionado para a página de login',
+    'Deve encerrar a sessão após logout impedindo acesso ao painel',
+    'Não deve permitir acesso ao painel sem autenticação',
+    { t: 'Não deve realizar login: senha inválida' },
+    { t: 'Não deve realizar login: e-mail não cadastrado' } ] },
+  { id: 'fe-cadastro-produto', code: 'FE-03', layer: 'Frontend', name: 'Cadastro de produto (administrador)', file: 'cypress/e2e/frontend/product-registration.cy.ts', target: 'front.serverest.dev/admin/cadastrarprodutos', tech: 'Page Object · Interceptor · cy.session', cases: [
+    'Deve cadastrar um produto e exibi-lo na listagem de produtos',
+    'Não deve cadastrar um produto com nome já utilizado' ] },
+  { id: 'api-usuarios', code: 'BE-01', layer: 'Back End', name: 'Gestão de usuários', file: 'cypress/e2e/api/users.cy.ts', target: 'serverest.dev/usuarios', tech: 'Service layer · JSON Schema', cases: [
+    'Deve cadastrar um usuário e consultá-lo respeitando o contrato',
+    'Deve atualizar os dados de um usuário existente',
+    'Deve excluir um usuário e não encontrá-lo em uma nova consulta',
+    'Não deve cadastrar um usuário com e-mail já utilizado',
+    'Não deve atualizar um usuário com e-mail já utilizado por outro',
+    'Deve listar usuários e refletir o total cadastrado' ] },
+  { id: 'api-login', code: 'BE-02', layer: 'Back End', name: 'Autenticação', file: 'cypress/e2e/api/login.cy.ts', target: 'serverest.dev/login', tech: 'Service layer · Data-driven', cases: [
+    'Deve autenticar com credenciais válidas e retornar um token Bearer',
+    { t: 'Não deve autenticar: senha inválida' },
+    { t: 'Não deve autenticar: e-mail não cadastrado' },
+    { t: 'Não deve autenticar: campos obrigatórios ausentes' },
+    { t: 'Não deve autenticar: e-mail com formato inválido' },
+    { t: 'Não deve autenticar: e-mail em branco' },
+    { t: 'Não deve autenticar: senha em branco' },
+    { t: 'Não deve autenticar: apenas e-mail, sem senha' },
+    { t: 'Não deve autenticar: apenas senha, sem e-mail' } ] },
+  { id: 'api-produtos', code: 'BE-03', layer: 'Back End', name: 'Gestão de produtos', file: 'cypress/e2e/api/products.cy.ts', target: 'serverest.dev/produtos', tech: 'Service layer · JSON Schema · Data-driven', cases: [
+    'Deve cadastrar um produto como administrador e consultá-lo respeitando o contrato',
+    { t: 'Não deve cadastrar um produto sem token de autenticação' },
+    { t: 'Não deve cadastrar um produto com token malformado' },
+    'Não deve permitir que usuário não administrador cadastre produtos',
+    'Não deve cadastrar dois produtos com o mesmo nome',
+    'Deve atualizar um produto e confirmar os novos dados',
+    'Deve excluir um produto e não encontrá-lo em nova consulta',
+    'Deve listar produtos e refletir o total cadastrado' ] },
+  { id: 'api-carrinhos', code: 'BE-04', layer: 'Back End', name: 'Carrinho de compras', file: 'cypress/e2e/api/carts.cy.ts', target: 'serverest.dev/carrinhos', tech: 'Service layer · JSON Schema · Data-driven', cases: [
+    'Deve criar um carrinho, validar o contrato e os cálculos de preço',
+    'Deve concluir a compra e reduzir o estoque do produto',
+    'Deve cancelar a compra e devolver o estoque ao produto',
+    'Não deve permitir que o mesmo usuário tenha mais de um carrinho',
+    'Não deve permitir adicionar quantidade maior que o estoque disponível',
+    { t: 'Não deve criar carrinho sem token de autenticação' },
+    { t: 'Não deve criar carrinho com token malformado' },
+    'Deve listar carrinhos filtrando por usuário',
+    'Não deve concluir compra sem carrinho aberto',
+    'Não deve cancelar compra sem carrinho aberto',
+    'Não deve criar carrinho com produto inexistente' ] }
+];
+
+const norm = c => (typeof c === 'string' ? { text: c, table: false } : { text: c.t, table: true });
+SPECS.forEach(s => {
+  s.rows = s.cases.map((c, i) => {
+    const r = norm(c);
+    r.neg = /^não deve/i.test(r.text);
+    r.code = s.code + '.' + String(i + 1).padStart(2, '0');
+    return r;
+  });
+  s.neg = s.rows.filter(r => r.neg).length;
+  s.pos = s.rows.length - s.neg;
+});
+const sum = (list, k) => list.reduce((a, s) => a + s[k], 0);
+const FE = SPECS.filter(s => s.layer === 'Frontend'), API = SPECS.filter(s => s.layer === 'Back End');
+
+// Resultados reais da última execução (gerados por scripts/build-dashboard-data.js).
+const RESULTS = window.__RESULTS__ || {};
+const normPath = p => p.replace(/\\/g, '/').replace(/^cypress\//, '');
+const specRecord = file => {
+  const want = normPath(file);
+  const key = Object.keys(RESULTS).find(k => normPath(k).endsWith(want));
+  return key ? RESULTS[key] : null;
+};
+const normTitle = t => t.trim().toLowerCase();
+SPECS.forEach(s => {
+  const rec = specRecord(s.file);
+  s.ranAt = rec ? rec.ranAt : null;
+  s.rows.forEach(r => {
+    r.result = (rec && rec.tests.find(x => normTitle(x.title) === normTitle(r.text))) || null;
+  });
+  s.passed = s.rows.filter(r => r.result && r.result.state === 'passed').length;
+  s.failed = s.rows.filter(r => r.result && r.result.state === 'failed').length;
+  s.notRun = s.rows.length - s.passed - s.failed;
+});
+
+const CROSS = '<svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" fill="none" stroke="#B42318" stroke-width="2" stroke-linecap="round"/></svg>';
+const DASH = '<svg viewBox="0 0 12 12"><path d="M3 6h6" fill="none" stroke="#7A889C" stroke-width="2" stroke-linecap="round"/></svg>';
+const badge = r => !r ? `<span class="res idle"><i>${DASH}</i>Sem execução</span>`
+  : r.state === 'passed' ? `<span class="res"><i>${CHECK}</i>Aprovado</span>`
+  : r.state === 'failed' ? `<span class="res fail"><i>${CROSS}</i>Falhou</span>`
+  : `<span class="res idle"><i>${DASH}</i>Ignorado</span>`;
+const secs = ms => ms == null ? '—' : (ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(1).replace('.', ',') + ' s');
+const when = iso => iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+const fmt = v => esc(JSON.stringify(v, null, 2) ?? '');
+const statusClass = n => (n < 300 ? 'ok' : n < 500 ? 'warn' : 'bad');
+const evHtml = ev => `
+  <details class="ev">
+    <summary>Requisição e resposta (${ev.length} ${ev.length === 1 ? 'chamada' : 'chamadas'})</summary>
+    ${ev.map(c => `
+    <div class="call">
+      <div class="call-head"><b>${esc(c.method)}</b><span>${esc(String(c.url).replace(/^https?:\/\/[^/]+/, ''))}</span><em class="st ${statusClass(c.status)}">${c.status}</em></div>
+      ${c.requestBody != null ? `<div class="call-label">Requisição</div><pre>${fmt(c.requestBody)}</pre>` : ''}
+      <div class="call-label">Resposta</div><pre>${fmt(c.responseBody)}</pre>
+    </div>`).join('')}
+  </details>`;
+
+const rowsHtml = s => s.rows.map(r => `
+  <tr>
+    <td class="cod">${r.code}</td>
+    <td class="ex">${r.text}${r.table ? '<small>gerado por tabela de cenários</small>' : ''}${r.result && r.result.error ? `<span class="err">${esc(r.result.error)}</span>` : ''}${r.result && Array.isArray(r.result.evidence) && r.result.evidence.length ? evHtml(r.result.evidence) : ''}</td>
+    <td><span class="pill ${r.neg ? 'neg' : 'pos'}">${r.neg ? 'Negativo' : 'Positivo'}</span></td>
+    <td>${badge(r.result)}</td>
+    <td class="num">${secs(r.result && r.result.duration)}</td>
+  </tr>`).join('');
+
+function viewOverview() {
+  const total = sum(SPECS, 'pos') + sum(SPECS, 'neg');
+  const row = (s, i) => `
+    <tr class="panel-row" style="--i:${i}">
+      <td class="cod">${s.code}</td>
+      <td><a href="#${s.id}">${s.name}</a></td>
+      <td>${s.layer}</td>
+      <td style="width:32%"><div class="bar" role="img" aria-label="${s.pos} positivos, ${s.neg} negativos"><span style="flex:${s.pos}"></span><span style="flex:${s.neg}"></span></div></td>
+      <td class="num">${s.pos + s.neg}</td>
+      <td class="num ${s.failed ? 'fail-text' : ''}">${s.ranAt ? `${s.passed}/${s.rows.length}${s.failed ? ` · ${s.failed} falhou` : ''}` : '—'}</td>
+    </tr>`;
+  const passed = sum(SPECS, 'passed'), failed = sum(SPECS, 'failed'), notRun = sum(SPECS, 'notRun');
+  const last = SPECS.map(s => s.ranAt).filter(Boolean).sort().pop();
+  const strip = last
+    ? `<div class="runstrip">
+        <div><b>Última execução</b><span>${when(last)}</span></div>
+        <span class="res"><i>${CHECK}</i>${passed} aprovados</span>
+        <span class="res ${failed ? 'fail' : 'idle'}"><i>${failed ? CROSS : DASH}</i>${failed} falharam</span>
+        <span class="res idle"><i>${DASH}</i>${notRun} sem execução</span>
+        <a class="runlink" href="../cypress/reports/html/index.html">Abrir relatório completo</a>
+      </div>`
+    : '<div class="runstrip empty">Nenhuma execução registrada ainda. Rode <code>npm run dash</code> para preencher o painel.</div>';
+  return `
+    <div class="sheet-top"><div><div class="eyebrow">Painel consolidado</div><h1>Resultados dos Testes</h1></div><button class="btn-pdf" type="button" onclick="window.print()">${ICON_PDF}Exportar PDF</button></div>
+    <div class="sheet-body">
+      <div class="totals">
+        <a class="total" href="#todos-os-exames"><i class="ico">${ICON_LIST}</i><b>${total}</b><span>Testes automatizados</span></a>
+        <a class="total" href="#frontend"><i class="ico">${ICON_MONITOR}</i><b>${sum(FE, 'pos') + sum(FE, 'neg')}</b><span>Frontend</span></a>
+        <a class="total" href="#back-end"><i class="ico">${ICON_SERVER}</i><b>${sum(API, 'pos') + sum(API, 'neg')}</b><span>Back End</span></a>
+        <a class="total" href="#arquivos"><i class="ico">${ICON_FILE}</i><b>${SPECS.length}</b><span>Arquivos de spec</span></a>
+      </div>
+      ${strip}
+      <h2>Painel por spec</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Código</th><th>Teste</th><th>Camada</th><th>Positivos × negativos</th><th>Casos</th><th>Resultado</th></tr></thead>
+        <tbody>${SPECS.map(row).join('')}</tbody>
+      </table></div>
+      <div class="legend"><span><i style="background:var(--blue)"></i>Positivo: ${sum(SPECS, 'pos')}</span><span><i style="background:var(--yellow)"></i>Negativo: ${sum(SPECS, 'neg')}</span></div>
+    </div>`;
+}
+
+function viewSpec(s) {
+  return `
+    <div class="sheet-top"><div><div class="eyebrow">Laudo de exame · ${s.layer}</div><h1>${s.name}</h1></div></div>
+    <dl class="fields">
+      <div class="field"><dt>Amostra</dt><dd class="mono">${s.file.replace('cypress/e2e/', '')}</dd></div>
+      <div class="field"><dt>Alvo</dt><dd class="mono">${s.target}</dd></div>
+      <div class="field"><dt>Método</dt><dd>${s.tech}</dd></div>
+      <div class="field"><dt>Casos</dt><dd>${s.rows.length} (${s.pos} positivos · ${s.neg} negativos)</dd></div>
+      <div class="field"><dt>Última execução</dt><dd>${when(s.ranAt)}</dd></div>
+    </dl>
+    <div class="sheet-body">
+      <h2>Resultados</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Código</th><th>Teste</th><th>Tipo</th><th>Resultado</th><th>Duração</th></tr></thead>
+        <tbody>${rowsHtml(s)}</tbody>
+      </table></div>
+    </div>`;
+}
+
+function viewLayer(title, eyebrow, list) {
+  const pos = sum(list, 'pos'), neg = sum(list, 'neg');
+  const sections = list.map(s => `
+    <h2><a class="sec-link" href="#${s.id}">${s.code} · ${s.name}</a></h2>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Código</th><th>Teste</th><th>Tipo</th><th>Resultado</th><th>Duração</th></tr></thead>
+      <tbody>${rowsHtml(s)}</tbody>
+    </table></div>`).join('');
+  return `
+    <div class="sheet-top"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1></div></div>
+    <div class="sheet-body">
+      <div class="totals">
+        <div class="total"><b>${list.length}</b><span>Arquivos de spec</span></div>
+        <div class="total"><b>${pos + neg}</b><span>Casos de teste</span></div>
+        <div class="total"><b>${pos}</b><span>Positivos</span></div>
+        <div class="total"><b>${neg}</b><span>Negativos</span></div>
+      </div>
+      ${sections}
+    </div>`;
+}
+
+function viewFiles() {
+  const row = s => `
+    <tr>
+      <td class="cod">${s.code}</td>
+      <td><a class="file-link" href="#${s.id}">${s.file.replace('cypress/e2e/', '')}</a></td>
+      <td>${s.layer}</td>
+      <td>${s.name}</td>
+      <td class="num">${s.rows.length}</td>
+    </tr>`;
+  return `
+    <div class="sheet-top"><div><div class="eyebrow">Código dos testes</div><h1>Arquivos de spec</h1></div></div>
+    <div class="sheet-body">
+      <h2>${SPECS.length} arquivos em cypress/e2e</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Código</th><th>Arquivo</th><th>Camada</th><th>Teste</th><th>Casos</th></tr></thead>
+        <tbody>${SPECS.map(row).join('')}</tbody>
+      </table></div>
+    </div>`;
+}
+
+function viewDemo() {
+  const total = sum(SPECS, 'pos') + sum(SPECS, 'neg');
+  const rec = specRecord('cypress/evidence/api-failure-demo.cy.ts');
+  const t = rec && rec.tests[0];
+  const hasEvidence = !!(t && t.evidence);
+  const sample = JSON.stringify(hasEvidence ? t.evidence : {
+    method: 'POST',
+    url: 'https://serverest.dev/login',
+    requestBody: { email: 'usuario.qa@teste.com', password: '***' },
+    status: 200,
+    responseBody: { message: 'Login realizado com sucesso', authorization: '***' }
+  }, null, 2);
+  const state = !t ? badge(null)
+    : t.state === 'failed' ? '<span class="pill neg">Falha esperada</span>'
+    : `<span class="res fail"><i>${CROSS}</i>Passou (inesperado)</span>`;
+  const evidenceNote = hasEvidence
+    ? `Registrado na execução de ${when(rec.ranAt)}. <code>password</code> e <code>authorization</code> saem mascarados.`
+    : 'Exemplo do formato. Rode <code>npm run test:evidence</code> para ver o registro real desta execução.';
+  return `
+    <div class="sheet-top"><div><div class="eyebrow">Demonstração</div><h1>Falha proposital de API</h1></div></div>
+    <dl class="fields">
+      <div class="field"><dt>Amostra</dt><dd class="mono">evidence/api-failure-demo.cy.ts</dd></div>
+      <div class="field"><dt>Alvo</dt><dd class="mono">serverest.dev/login</dd></div>
+      <div class="field"><dt>Comando</dt><dd class="mono">npm run test:evidence</dd></div>
+      <div class="field"><dt>Contagem</dt><dd>Fora dos ${total} testes</dd></div>
+      <div class="field"><dt>Última execução</dt><dd>${when(rec && rec.ranAt)}</dd></div>
+    </dl>
+    <div class="sheet-body">
+      <h2>Para que serve</h2>
+      <div class="obs">
+        <span class="tag">Falha esperada</span>
+        <h3>Prova que a evidência da API chega ao relatório</h3>
+        <p>Este cenário falha de propósito: faz um login válido e espera o status 201, quando a API devolve 200. Ele existe para mostrar o que acontece quando um teste de API falha de verdade.</p>
+        <p>Fica fora da execução padrão (<code>npm test</code>), para não deixar a suíte vermelha. Rode só ele com <code>npm run test:evidence</code>.</p>
+      </div>
+      <h2>Resultado</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Código</th><th>Teste</th><th>Tipo</th><th>Resultado</th><th>Duração</th></tr></thead>
+        <tbody><tr>
+          <td class="cod">DEMO-01</td>
+          <td class="ex">Deve falhar de propósito para gerar a evidência da requisição e da resposta${t && t.error ? `<span class="err">${esc(t.error)}</span>` : ''}</td>
+          <td><span class="pill neg">Negativo</span></td>
+          <td>${state}</td>
+          <td class="num">${secs(t && t.duration)}</td>
+        </tr></tbody>
+      </table></div>
+      <h2>Evidência anexada ao relatório</h2>
+      <p class="note">Bloco "API: requisições e respostas" que o relatório recebe quando o teste falha. ${evidenceNote}</p>
+      <pre class="evidence">${esc(sample)}</pre>
+    </div>`;
+}
+
+function viewObs() {
+  return `
+    <div class="sheet-top"><div><div class="eyebrow">Registro de achados</div><h1>Observações sobre a aplicação</h1></div></div>
+    <div class="sheet-body">
+      <h2>Achado 1</h2>
+      <div class="obs">
+        <span class="tag">Inconsistência</span>
+        <h3>Campo "Imagem" marcado como obrigatório, mas não validado</h3>
+        <p>O formulário de cadastro de produto exibe o campo de imagem com asterisco, indicando obrigatoriedade. Mesmo assim, o frontend e o backend aceitam o cadastro sem imagem.</p>
+        <p>Não há validação no cliente nem no servidor. A interface promete uma regra que o sistema não aplica.</p>
+      </div>
+    </div>`;
+}
+
+const TITLES = { 'todos-os-exames': 'Testes automatizados', frontend: 'Frontend', 'back-end': 'Back End', arquivos: 'Arquivos de spec', 'demo-falha-api': 'Falha proposital (API)', observacoes: 'Observações' };
+const VIEWS = {
+  'visao-geral': viewOverview,
+  'todos-os-exames': () => viewLayer('Testes automatizados', 'Todas as camadas', SPECS),
+  frontend: () => viewLayer('Frontend', 'Camada', FE),
+  'back-end': () => viewLayer('Back End', 'Camada', API),
+  arquivos: viewFiles,
+  'demo-falha-api': viewDemo,
+  observacoes: viewObs
+};
+SPECS.forEach(s => (VIEWS[s.id] = () => viewSpec(s)));
+
+function buildNav() {
+  const item = (id, label, n) => `<a href="#${id}" data-id="${id}">${label}${n != null ? `<span class="n">${n}</span>` : ''}</a>`;
+  const block = (title, items, icon = '') => `
+    <div class="nav-block">
+      <button class="nav-group" type="button" aria-expanded="true">${icon}<span>${title}</span>${ICON_CHEVRON}</button>
+      <div class="nav-items"><div>${items}</div></div>
+    </div>`;
+  const specs = l => l.map(s => item(s.id, s.name, s.rows.length)).join('');
+  const nav = document.getElementById('nav');
+  nav.innerHTML =
+    block('Painel', item('visao-geral', 'Visão geral')) +
+    block('Frontend', specs(FE), ICON_MONITOR) +
+    block('Back End', specs(API), ICON_SERVER) +
+    block('Demonstração', item('demo-falha-api', 'Falha proposital (API)'), ICON_ALERT) +
+    block('Registro', item('observacoes', 'Observações'));
+  nav.addEventListener('click', e => {
+    const head = e.target.closest('.nav-group');
+    if (!head) return;
+    const closed = head.parentElement.classList.toggle('closed');
+    head.setAttribute('aria-expanded', String(!closed));
+  });
+}
+
+function render() {
+  const id = (location.hash || '#visao-geral').slice(1);
+  const key = VIEWS[id] ? id : 'visao-geral';
+  document.getElementById('sheet').innerHTML = VIEWS[key]();
+  document.querySelectorAll('#nav a').forEach(a => {
+    if (a.dataset.id === key) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  document.title = (key === 'visao-geral' ? 'Dashboard' : 'Dashboard · ' + (SPECS.find(s => s.id === key)?.name || TITLES[key]));
+  document.getElementById('main').scrollTop = 0;
+}
+
+const app = document.getElementById('app');
+const toggles = [...document.querySelectorAll('.toggle')];
+function setCollapsed(on) {
+  app.classList.toggle('collapsed', on);
+  toggles.forEach(t => t.setAttribute('aria-expanded', String(!on)));
+  try { localStorage.setItem('lab-menu-collapsed', on ? '1' : '0'); } catch (e) {}
+}
+toggles.forEach(t => t.addEventListener('click', () => setCollapsed(!app.classList.contains('collapsed'))));
+try { if (localStorage.getItem('lab-menu-collapsed') === '1') setCollapsed(true); } catch (e) {}
+
+buildNav();
+// Exportar PDF: o botão abre a impressão do navegador ("Salvar como PDF") com o relatório completo.
+const printRoot = document.getElementById('print-root');
+let screenTitle = document.title;
+window.addEventListener('beforeprint', () => {
+  screenTitle = document.title;
+  document.title = 'Relatorio-de-Testes-ServeRest';
+  printRoot.innerHTML = [viewOverview(), ...SPECS.map(viewSpec), viewObs()]
+    .map(html => `<section class="print-page"><div class="sheet">${html}</div></section>`).join('');
+});
+window.addEventListener('afterprint', () => {
+  document.title = screenTitle;
+  printRoot.innerHTML = '';
+});
+
+window.addEventListener('hashchange', render);
+render();
+</script>
+</body>
+</html>
