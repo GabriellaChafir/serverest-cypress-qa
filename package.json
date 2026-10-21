@@ -1,0 +1,45 @@
+{
+  "name": "serverest-cypress-qa",
+  "version": "1.0.0",
+  "description": "Desafio de automação: testes E2E (frontend) e de API do ServeRest com Cypress e TypeScript",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "cy:open": "cypress open",
+    "test": "cypress run",
+    "test:api": "cypress run --spec \"cypress/e2e/api/**/*.cy.ts\"",
+    "test:front": "cypress run --spec \"cypress/e2e/frontend/**/*.cy.ts\"",
+    "report:open": "node scripts/open-report.js",
+    "test:report": "node scripts/run-and-open-report.js",
+    "test:api:report": "node scripts/run-and-open-report.js --spec \"cypress/e2e/api/**/*.cy.ts\"",
+    "test:evidence": "node scripts/run-and-open-dashboard.js --config \"specPattern=cypress/evidence/**/*.cy.ts\"",
+    "dash": "node scripts/run-and-open-dashboard.js",
+    "dashboard": "node scripts/open-dashboard.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint cypress",
+    "format": "prettier --write \"cypress/**/*.{ts,json}\" cypress.config.ts"
+  },
+  "keywords": [
+    "cypress",
+    "typescript",
+    "e2e",
+    "api",
+    "serverest"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@faker-js/faker": "^10.6.0",
+    "@types/node": "^26.6.5",
+    "ajv": "^8.20.0",
+    "cypress": "^16.2.0",
+    "cypress-mochawesome-reporter": "^5.0.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-cypress": "^7.0.2",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.0"
+  }
+}
