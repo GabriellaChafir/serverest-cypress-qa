@@ -2,6 +2,8 @@
 
 Testes automatizados com [Cypress](https://www.cypress.io/) e **TypeScript** para o **frontend** (E2E) e a **API** do ServeRest.
 
+**Dashboard online com os resultados da última execução:** https://gabriellachafir.github.io/serverest-cypress-qa/dashboard/
+
 - Frontend: https://front.serverest.dev/
 - API (Swagger): https://serverest.dev/
 
