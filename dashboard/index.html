@@ -387,7 +387,7 @@ const rowsHtml = s => s.rows.map(r => `
   <tr>
     <td class="cod">${r.code}</td>
     <td class="ex">${r.text}${r.table ? '<small>gerado por tabela de cenários</small>' : ''}${r.result && r.result.error ? `<span class="err">${esc(r.result.error)}</span>` : ''}${r.result && Array.isArray(r.result.evidence) && r.result.evidence.length ? evHtml(r.result.evidence) : ''}</td>
-    <td><span class="pill ${r.neg ? 'neg' : 'pos'}">${r.neg ? 'Negativo' : 'Positivo'}</span></td>
+    <td><span class="pill ${r.neg ? 'neg' : 'pos'}">${r.neg ? 'Cenário negativo' : 'Cenário positivo'}</span></td>
     <td>${badge(r.result)}</td>
     <td class="num">${secs(r.result && r.result.duration)}</td>
   </tr>`).join('');
@@ -399,7 +399,7 @@ function viewOverview() {
       <td class="cod">${s.code}</td>
       <td><a href="#${s.id}">${s.name}</a></td>
       <td>${s.layer}</td>
-      <td style="width:32%"><div class="bar" role="img" aria-label="${s.pos} positivos, ${s.neg} negativos"><span style="flex:${s.pos}"></span><span style="flex:${s.neg}"></span></div></td>
+      <td style="width:32%"><div class="bar" role="img" aria-label="${s.pos} cenários positivos, ${s.neg} cenários negativos"><span style="flex:${s.pos}"></span><span style="flex:${s.neg}"></span></div></td>
       <td class="num">${s.pos + s.neg}</td>
       <td class="num ${s.failed ? 'fail-text' : ''}">${s.ranAt ? `${s.passed}/${s.rows.length}${s.failed ? ` · ${s.failed} falhou` : ''}` : '—'}</td>
     </tr>`;
@@ -426,10 +426,10 @@ function viewOverview() {
       ${strip}
       <h2>Painel por spec</h2>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>Código</th><th>Teste</th><th>Camada</th><th>Positivos × negativos</th><th>Casos</th><th>Resultado</th></tr></thead>
+        <thead><tr><th>Código</th><th>Teste</th><th>Camada</th><th>Cenários positivos × negativos</th><th>Casos</th><th>Resultado</th></tr></thead>
         <tbody>${SPECS.map(row).join('')}</tbody>
       </table></div>
-      <div class="legend"><span><i style="background:var(--blue)"></i>Positivo: ${sum(SPECS, 'pos')}</span><span><i style="background:var(--yellow)"></i>Negativo: ${sum(SPECS, 'neg')}</span></div>
+      <div class="legend"><span><i style="background:var(--blue)"></i>Cenário positivo: ${sum(SPECS, 'pos')}</span><span><i style="background:var(--yellow)"></i>Cenário negativo: ${sum(SPECS, 'neg')}</span></div>
     </div>`;
 }
 
@@ -440,7 +440,7 @@ function viewSpec(s) {
       <div class="field"><dt>Amostra</dt><dd class="mono">${s.file.replace('cypress/e2e/', '')}</dd></div>
       <div class="field"><dt>Alvo</dt><dd class="mono">${s.target}</dd></div>
       <div class="field"><dt>Método</dt><dd>${s.tech}</dd></div>
-      <div class="field"><dt>Casos</dt><dd>${s.rows.length} (${s.pos} positivos · ${s.neg} negativos)</dd></div>
+      <div class="field"><dt>Casos</dt><dd>${s.rows.length} (${s.pos} cenários positivos · ${s.neg} cenários negativos)</dd></div>
       <div class="field"><dt>Última execução</dt><dd>${when(s.ranAt)}</dd></div>
     </dl>
     <div class="sheet-body">
@@ -466,8 +466,8 @@ function viewLayer(title, eyebrow, list) {
       <div class="totals">
         <div class="total"><b>${list.length}</b><span>Arquivos de spec</span></div>
         <div class="total"><b>${pos + neg}</b><span>Casos de teste</span></div>
-        <div class="total"><b>${pos}</b><span>Positivos</span></div>
-        <div class="total"><b>${neg}</b><span>Negativos</span></div>
+        <div class="total"><b>${pos}</b><span>Cenários positivos</span></div>
+        <div class="total"><b>${neg}</b><span>Cenários negativos</span></div>
       </div>
       ${sections}
     </div>`;
@@ -534,7 +534,7 @@ function viewDemo() {
         <tbody><tr>
           <td class="cod">DEMO-01</td>
           <td class="ex">Deve falhar de propósito para gerar a evidência da requisição e da resposta${t && t.error ? `<span class="err">${esc(t.error)}</span>` : ''}</td>
-          <td><span class="pill neg">Negativo</span></td>
+          <td><span class="pill neg">Cenário negativo</span></td>
           <td>${state}</td>
           <td class="num">${secs(t && t.duration)}</td>
         </tr></tbody>
